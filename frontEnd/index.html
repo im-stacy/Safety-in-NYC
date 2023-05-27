@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <title>Simple Map</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <script
+      async
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBCW7iu2UgXrzBIhhaRGGUNQCOF8nL5yu4&callback=initMap&libraries=maps,marker&v=beta"
+    ></script>
+
+    <script>
+      function initMap() {
+        console.log("Maps JavaScript API loaded.");
+      }
+    </script>
+  </head>
+  <body>
+    <gmp-map
+      center="37.4220656,-122.0840897"
+      zoom="10"
+      map-id="DEMO_MAP_ID"
+    ></gmp-map>
+  </body>
+</html>

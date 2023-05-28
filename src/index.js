@@ -4,32 +4,269 @@ var yCoordinates = [-73.868328, -73.912739, -73.910994, -73.781699, -73.93596, -
 let titles = ["one", "two", "three"];
 
 // Initialize and add the map
-let map;
+let map, directionsService, directionsRenderer;
+let routeDictionary = {};
+let markers = [];
+let nearness = 200;
 
-async function initMap() {
-  const position = { lat: 40.712776, lng: -74.005974 };
-  // Request needed libraries.
-  //@ts-ignore
-  const { Map } = await google.maps.importLibrary("maps");
-  const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+// async function initMap() {
+//   const position = { lat: 40.712776, lng: -74.005974 };
+//   // Request needed libraries.
+//   //@ts-ignore
+//   const { Map } = await google.maps.importLibrary("maps");
+//   const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
 
-  // The map, centered at Uluru
-  map = new Map(document.getElementById("map"), {
-    zoom: 4,
-    center: position,
-    mapId: "DEMO_MAP_ID",
+//   // The map, centered at Uluru
+//   map = new Map(document.getElementById("map"), {
+//     zoom: 10,
+//     center: position,
+//     mapId: "DEMO_MAP_ID",
+//   });
+
+//   for(let i = 0; i < xCoordinates.length; i++)
+//   {
+//     let markerPos = { lat: xCoordinates[i], lng: yCoordinates[i] }
+//     console.log(markerPos);
+//     new AdvancedMarkerElement({
+//       map: map,
+//       position: markerPos,
+//       title: titles[i]
+//     });
+//   }
+// }
+
+// initMap();
+
+async function initAutocomplete() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 40.7, lng: -74 },
+    zoom: 10,
+    mapId: "MY_MAP_ID",
+    mapTypeId: "roadmap",
   });
-
+  const {AdvancedMarkerElement} = await google.maps.importLibrary("marker")
   for(let i = 0; i < xCoordinates.length; i++)
   {
     let markerPos = { lat: xCoordinates[i], lng: yCoordinates[i] }
-    console.log(markerPos);
-    new AdvancedMarkerElement({
+    markers.push(new google.maps.marker.AdvancedMarkerElement({
       map: map,
       position: markerPos,
-      title: titles[i]
-    });
+      title: titles[i],
+    }));
+    
+  }
+  // Create the search box and link it to the UI element.
+  const source = document.getElementById("pac-source");
+  const searchBox1 = new google.maps.places.SearchBox(source);
+
+
+  const dest = document.getElementById("pac-dest");
+  const searchBox2 = new google.maps.places.SearchBox(dest);
+
+  // Bias the SearchBox results towards current map's viewport.
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer = new google.maps.DirectionsRenderer();
+  directionsRenderer.setMap(map);
+
+  const form = document.getElementById("route-form");
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const sourcePlace = searchBox1.getPlaces()[0];
+    const destPlace = searchBox2.getPlaces()[0];
+
+    if (!sourcePlace || !destPlace) {
+      window.alert("Please select a valid start and end location.");
+      return;
+    }
+    nearness = parseInt(document.getElementById("threshold").value);
+
+    const sourceLatLng = sourcePlace.geometry.location;
+    const destLatLng = destPlace.geometry.location;
+
+    calculateAndDisplayRoute(directionsService, sourceLatLng, destLatLng);
+  });
+}
+
+function setMapOnAll(arr) {
+  for (let i = 0; i < arr.length; i++) {
+    arr[i].setMap(map);
   }
 }
 
-initMap();
+
+function calculateAndDisplayRoute(directionsService, source, destination) {
+  const request = {
+    origin: source,
+    destination: destination,
+    travelMode: google.maps.TravelMode.WALKING,
+    provideRouteAlternatives: true, // Request multiple routes
+  };
+
+  directionsService.route(request, (response, status) => {
+    if (status === google.maps.DirectionsStatus.OK) {
+      const routes = response.routes;
+      const numRoutes = Math.min(routes.length, 3); // Get up to 3 routes
+      for(let i = 0; i<numRoutes; i++){
+        routeDictionary[routes[i]] = i;
+      }
+
+      const sortedRoutes = routes.sort((a, b) => {
+        const markersA = sortClosest(a);
+        const markersB = sortClosest(b);
+        return markersA - markersB;
+      });
+      console.log(sortedRoutes);
+
+      for (let i = 0; i < numRoutes; i++) {
+        const route = sortedRoutes[i];
+        const directionsRenderer = new google.maps.DirectionsRenderer();
+        directionsRenderer.setMap(map);
+        directionsRenderer.setDirections(response);
+        directionsRenderer.setRouteIndex(i);
+
+        const routeSummary = route.summary;
+        console.log(`Take ${routeSummary}`);
+
+        checkMarkersCloseToRoute(routeDictionary[route], route);
+        
+      }
+    } else {
+      console.error('Directions request failed. Status:', status);
+    }
+  });
+}
+
+function sortClosest(route){
+  console.log('sort this');
+  const routePath = route.overview_path;
+
+  const closeMarkers = [];
+
+  markers.forEach((marker) => {
+    const markerPosition = marker.position;
+    let isCloseToRoute = false;
+
+    for (let i = 0; i < routePath.length - 1; i++) {
+      const routeStartPosition = new google.maps.LatLng(
+        routePath[i].lat(),
+        routePath[i].lng()
+      );
+      const routeEndPosition = new google.maps.LatLng(
+        routePath[i + 1].lat(),
+        routePath[i + 1].lng()
+      );
+
+      const distanceToStart = google.maps.geometry.spherical.computeDistanceBetween(
+        markerPosition,
+        routeStartPosition
+      );
+      const distanceToEnd = google.maps.geometry.spherical.computeDistanceBetween(
+        markerPosition,
+        routeEndPosition
+      );
+
+      if (distanceToStart <= nearness || distanceToEnd <= nearness) {
+        // Marker is close to the route
+        isCloseToRoute = true;
+        break;
+      }
+    }
+
+    if (isCloseToRoute) {
+      closeMarkers.push(marker);
+    }
+    return closeMarkers.length
+  });
+}
+
+function checkMarkersCloseToRoute(index, route) {
+  console.log('running this');
+  const routePath = route.overview_path;
+
+  const closeMarkers = [];
+
+  markers.forEach((marker) => {
+    const markerPosition = marker.position;
+    let isCloseToRoute = false;
+
+    for (let i = 0; i < routePath.length - 1; i++) {
+      const routeStartPosition = new google.maps.LatLng(
+        routePath[i].lat(),
+        routePath[i].lng()
+      );
+      const routeEndPosition = new google.maps.LatLng(
+        routePath[i + 1].lat(),
+        routePath[i + 1].lng()
+      );
+
+      const distanceToStart = google.maps.geometry.spherical.computeDistanceBetween(
+        markerPosition,
+        routeStartPosition
+      );
+      const distanceToEnd = google.maps.geometry.spherical.computeDistanceBetween(
+        markerPosition,
+        routeEndPosition
+      );
+
+      if (distanceToStart <= nearness || distanceToEnd <= nearness) {
+        // Marker is close to the route
+        isCloseToRoute = true;
+        break;
+      }
+    }
+
+    if (isCloseToRoute) {
+      closeMarkers.push(marker);
+    }
+  });
+
+  const routeInfoContainer = document.getElementById("route-info");
+
+const routeInfoText = `<h2>Take ${route.summary}</h2>`;
+let risk;
+if (closeMarkers.length <= 2) {
+  risk = "Low"; // Low risk
+} else if (closeMarkers.length <= 5) {
+  risk = "Moderate"; // Moderate risk
+} else {
+  risk = "High"; // High risk
+}
+const walkingTime = route.legs[0].duration.text;
+const markerInfoText = `<p class = "risk"><strong>Risk</strong>: ${risk} <span class = "light">(${closeMarkers.length} recorded incidents nearby)</span></p><p class="walking-time"><strong>Estimated Walking Time:</strong> ${walkingTime}</p>`;
+
+// Create a div element to hold the route information
+const routeInfoDiv = document.createElement("div");
+if(index == 1){
+  routeInfoDiv.classList.add("first");
+}
+routeInfoDiv.innerHTML = routeInfoText + markerInfoText;
+
+// Create a button element for sending directions
+const sendDirectionsBtn = document.createElement("button");
+sendDirectionsBtn.innerText = "Send Directions";
+sendDirectionsBtn.addEventListener("click", () => {
+  // Handle button click event to send directions
+  openGoogleMapsRoute(route);
+});
+// Append the button to the route information
+routeInfoDiv.appendChild(sendDirectionsBtn);
+
+// Append the route information to the container
+routeInfoContainer.appendChild(routeInfoDiv);
+}
+
+function openGoogleMapsRoute(route) {
+  // Construct the Google Maps URL
+  const baseUrl = 'https://www.google.com/maps/dir/';
+  const origin = route.origin.lat + ',' + route.origin.lng;
+  const destination = route.destination.lat + ',' + route.destination.lng;
+  const waypoints = route.waypoints.map(waypoint => waypoint.lat + ',' + waypoint.lng).join('/');
+  const url = baseUrl + origin + '/' + waypoints + '/' + destination;
+
+  // Open the Google Maps URL in a new window or tab
+  window.open(url, '_blank');
+}
+
+
+window.initAutocomplete = initAutocomplete;

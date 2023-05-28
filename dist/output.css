@@ -1,40 +1,33 @@
 @font-face {
   font-family: 'Bold';
+
   src: url('fonts/Bold.otf') format('opentype');
 }
 
 @font-face {
   font-family: 'Reg';
+
   src: url('fonts/Reg.otf') format('opentype');
 }
+
 @font-face {
   font-family: 'Med';
+
   src: url('fonts/Med.otf') format('opentype');
 }
+
 body{
   font-family: 'Med', sans-serif;
-  margin: 20px auto;
+  margin: 20px;
   background-color: #F9F7F5;
   color: #261432;
 }
 
-#caption{
-  margin: 0 auto;
-  text-align: center;
-  color: #776E7C;
-  font-size: 14px;
-}
 h1{
-  margin: 0px;
-  padding: 0px;
-  margin-top: 80px;
   text-align: center;
   font-size: 50px;
 }
 
-h2{
-  margin-top: 30px;
-}
 button {
   padding: 10px 20px;
   background-color: #7DC1C6;
@@ -44,15 +37,6 @@ button {
   font-size: 16px;
   cursor: pointer;
   font-family: 'Bold';
-}
-
-#slider{
-  display: flex;
-  justify-content: center; /* Horizontal centering */
-  align-items: center; /* Vertical centering */
-  margin: 5px auto; 
-  margin-top: 10px;
-
 }
 
 button:hover {
@@ -76,7 +60,6 @@ input[type="password"] {
   border-radius: 100px;
   font-size: 16px;
   margin-right: 10px
-  margin-top: 20px
 }
 
 input[type="text"]:focus,
@@ -87,41 +70,8 @@ input[type="password"]:focus {
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
 }
 
-#route-info div{
-  padding: 20px;
-  border-radius: 10px;
-}
-.first{
-  border: solid 2px #7DC1C6;
-}
-
-.light{
-  font-family: 'Reg';
-  font-size: 14px;
-}
-
-#flex{
-  display: flex;
-  gap: 20px;
-  padding: 0px 50px;
-  margin-bottom: 50px;
-}
-
-#form{
-  display: flex;
-  justify-content: center; /* Horizontal centering */
-  align-items: center; /* Vertical centering */
-  padding: 20px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  border: 2px solid #E4B252;
-  width: 600px;
-}
-
 #map {
-  height: 500px;
-  width: 700px;
-  border-radius: 10px;
+  height: 100%;
 }
 
 .route-info h2 {
@@ -129,16 +79,6 @@ input[type="password"]:focus {
   padding: 0px;
 }
 
-
-ul {
-  list-style-type: disc; /* or other list style type, such as square, circle, etc. */
-  margin: 0;
-  padding: 0;
-}
-
-li {
-  margin: 0;
-  padding: 0;
-  margin-bottom: 8px; /* adjust as needed */
-  padding-left: 20px; /* adjust as needed */
+.route-info p.walking-time {
+  /* Your styles for walking time text here */
 }
